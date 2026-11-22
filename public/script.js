@@ -132,7 +132,12 @@ function desenharConta() {
 }
 
 function preencherDadosPedido() {
+    // Logado: usa o e-mail do login (campo escondido) e só pede o nome se ainda não for conhecido.
+    document.getElementById("pedido-conta").hidden = usuario === null;
+    document.getElementById("pedido-campo-email").hidden = usuario !== null;
+    document.getElementById("pedido-campo-nome").hidden = usuario !== null && !!usuario.nome;
     if (!usuario) { return; }
+    document.getElementById("pedido-conta-email").innerText = usuario.email;
     document.getElementById("pedido-email").value = usuario.email;
     if (usuario.nome) { document.getElementById("pedido-nome").value = usuario.nome; }
 }
@@ -153,17 +158,25 @@ document.getElementById("btn-login").addEventListener("click", async function ()
         localStorage.setItem("usuario", JSON.stringify(usuario));
         erro.innerText = "";
         desenharConta();
+        preencherDadosPedido();
     } catch (e) {
         erro.innerText = "Não foi possível entrar agora.";
     }
 });
 
-document.getElementById("btn-sair").addEventListener("click", function () {
+function sair() {
     usuario = null;
     localStorage.removeItem("usuario");
     menuConta.hidden = true;
+    document.getElementById("pedido-nome").value = "";
+    document.getElementById("pedido-email").value = "";
+    document.getElementById("resultado-pedido").innerText = "";
     desenharConta();
-});
+    preencherDadosPedido();
+    fecharModais();
+}
+document.getElementById("btn-sair").addEventListener("click", sair);
+document.getElementById("btn-sair-carrinho").addEventListener("click", sair);
 
 document.getElementById("btn-meus-pedidos").addEventListener("click", function () {
     menuConta.hidden = true;
@@ -175,7 +188,7 @@ document.getElementById("btn-meus-pedidos").addEventListener("click", function (
 document.getElementById("btn-pedido").addEventListener("click", async function () {
     let saida = document.getElementById("resultado-pedido");
     let nomeP = document.getElementById("pedido-nome").value.trim();
-    let emailP = document.getElementById("pedido-email").value.trim();
+    let emailP = usuario ? usuario.email : document.getElementById("pedido-email").value.trim();
     if (carrinho.length === 0) { saida.innerText = "Adicione perfumes ao carrinho primeiro!"; return; }
     if (nomeP === "" || emailP === "") { saida.innerText = "Preencha nome e e-mail!"; return; }
     try {
@@ -186,6 +199,12 @@ document.getElementById("btn-pedido").addEventListener("click", async function (
         });
         let dados = await retorno.json();
         if (!retorno.ok) { saida.innerText = dados.erro; return; }
+        if (usuario && !usuario.nome) {
+            usuario.nome = nomeP;
+            localStorage.setItem("usuario", JSON.stringify(usuario));
+            desenharConta();
+            preencherDadosPedido();
+        }
         carrinho = [];
         salvarCarrinho();
         carregarProdutos();

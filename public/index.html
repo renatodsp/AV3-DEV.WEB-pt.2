@@ -126,10 +126,18 @@
             <h2>Seu carrinho</h2>
             <div id="itens-carrinho">Seu carrinho está vazio.</div>
             <div id="dados-pedido">
-                <p>Seu nome</p>
-                <input type="text" id="pedido-nome" placeholder="Digite seu nome">
-                <p>Seu e-mail</p>
-                <input type="text" id="pedido-email" placeholder="Digite seu e-mail">
+                <div id="pedido-conta" hidden>
+                    <p>Comprando como <strong id="pedido-conta-email"></strong></p>
+                    <button id="btn-sair-carrinho" class="btn btn-claro" type="button">Sair</button>
+                </div>
+                <div id="pedido-campo-nome">
+                    <p>Seu nome</p>
+                    <input type="text" id="pedido-nome" placeholder="Digite seu nome">
+                </div>
+                <div id="pedido-campo-email">
+                    <p>Seu e-mail</p>
+                    <input type="text" id="pedido-email" placeholder="Digite seu e-mail">
+                </div>
                 <button id="btn-pedido" class="btn" type="button">Finalizar pedido</button>
             </div>
             <div id="resultado-pedido"></div>
