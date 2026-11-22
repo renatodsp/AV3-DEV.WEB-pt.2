@@ -1,102 +1,69 @@
+-- Consultas do projeto Alma & Aroma (PostgreSQL / Neon)
+-- Como usar: abra o SQL Editor do Neon, cole UMA consulta por vez e clique em Run.
+-- "Quem executa": o site (via API) ou você, à mão, para mostrar no relatório/seminário.
+
 -- ============================================================
--- CONSULTA 1 (JOIN): itens de cada pedido com cliente e produto
--- Uso real: tela "Meus pedidos" (GET /api/pedidos?email=...)
+-- CONSULTA 1 (filtro + ordenação): perfumes disponíveis, do mais barato ao mais caro
+-- Quem executa: o site usa uma versão parecida (GET /api/produtos monta os cards)
 -- ============================================================
-SELECT p.id AS pedido, p.status, p.criado_em, c.nome AS cliente,
-       pr.nome AS produto, i.quantidade, i.preco_unitario
+SELECT nome, tipo, preco, estoque
+FROM produtos
+WHERE ativo
+ORDER BY preco;
+
+-- ============================================================
+-- CONSULTA 2 (filtro + ordenação): produtos com estoque baixo
+-- Quem executa: você, no Neon (aviso de reposição)
+-- Como testar: vem vazia no início. Baixe um estoque e rode de novo:
+--   UPDATE produtos SET estoque = 5 WHERE nome = 'Bosque Sereno';
+-- (o site também baixa o estoque a cada pedido feito)
+-- ============================================================
+SELECT nome, estoque
+FROM produtos
+WHERE estoque < 10
+ORDER BY estoque;
+
+-- ============================================================
+-- CONSULTA 3 (JOIN): pedidos de um cliente, do mais novo para o mais antigo
+-- Quem executa: o site usa uma versão parecida (janela "Meus pedidos"). É a consulta que o índice acelera.
+-- Troque o e-mail para ver outro cliente.
+-- ============================================================
+SELECT p.id AS pedido, p.status, p.total, p.criado_em
 FROM pedidos p
-JOIN clientes c       ON c.id = p.cliente_id
-JOIN itens_pedido i   ON i.pedido_id = p.id
-JOIN produtos pr      ON pr.id = i.produto_id
+JOIN clientes c ON c.id = p.cliente_id
 WHERE c.email = 'maria@exemplo.com'
 ORDER BY p.criado_em DESC;
 
 -- ============================================================
--- CONSULTA 2 (agregação): faturamento e unidades por produto
--- Uso real: saber quais perfumes mais vendem (pedidos não cancelados)
+-- CONSULTA 4 (JOIN): itens de um pedido, com o nome do perfume
+-- Quem executa: o site usa uma versão parecida (itens em "Meus pedidos"); aqui, só o pedido 1
 -- ============================================================
-SELECT pr.nome, SUM(i.quantidade) AS unidades, SUM(i.quantidade * i.preco_unitario) AS faturamento
+SELECT pr.nome AS perfume, i.quantidade, i.preco_unitario
 FROM itens_pedido i
-JOIN pedidos p   ON p.id = i.pedido_id
 JOIN produtos pr ON pr.id = i.produto_id
-WHERE p.status <> 'cancelado'
-GROUP BY pr.nome
-ORDER BY faturamento DESC;
+WHERE i.pedido_id = 1;
 
 -- ============================================================
--- CONSULTA 3 (filtro + ordenação): produtos com estoque baixo
--- Uso real: aviso de reposição para a equipe
+-- CONSULTA 5 (agregação COUNT): quantos pedidos existem em cada status
+-- Quem executa: você, no Neon (painel de acompanhamento)
 -- ============================================================
-SELECT nome, tipo, estoque
-FROM produtos
-WHERE ativo AND estoque < 10
-ORDER BY estoque ASC, nome;
-
--- ============================================================
--- CONSULTA 4 (JOIN + GROUP BY + HAVING): clientes que mais compraram
--- Uso real: identificar clientes frequentes (pedidos não cancelados)
--- ============================================================
-SELECT c.nome, c.email, COUNT(DISTINCT p.id) AS pedidos, SUM(i.quantidade * i.preco_unitario) AS total_gasto
-FROM clientes c
-JOIN pedidos p       ON p.cliente_id = c.id
-JOIN itens_pedido i  ON i.pedido_id = p.id
-WHERE p.status <> 'cancelado'
-GROUP BY c.id, c.nome, c.email
-HAVING SUM(i.quantidade * i.preco_unitario) > 100
-ORDER BY total_gasto DESC;
-
--- ============================================================
--- CONSULTA 5 (LEFT JOIN + COUNT): interesses (contatos) por produto
--- Uso real: saber qual perfume gera mais contato, mesmo os sem nenhum
--- ============================================================
-SELECT pr.nome, COUNT(ct.id) AS contatos
-FROM produtos pr
-LEFT JOIN contatos ct ON ct.produto_id = pr.id
-GROUP BY pr.id, pr.nome
-ORDER BY contatos DESC, pr.nome;
-
--- ============================================================
--- CONSULTA 6 (agregação): quantidade e valor de pedidos por status
--- Uso real: painel de acompanhamento de vendas
--- ============================================================
-SELECT status, COUNT(*) AS pedidos, COALESCE(SUM(total), 0) AS valor_total
+SELECT status, COUNT(*) AS pedidos
 FROM pedidos
-GROUP BY status
-ORDER BY pedidos DESC;
+GROUP BY status;
 
 -- ============================================================
--- CONSULTA 7 (LEFT JOIN + IS NULL): produtos que ainda não foram vendidos
--- Uso real: sugerir promoção/divulgação de perfumes sem saída
+-- CONSULTA 6 (JOIN + agregação SUM): unidades pedidas de cada perfume
+-- Quem executa: você, no Neon (quais perfumes saem mais; inclui pedidos cancelados)
 -- ============================================================
-SELECT pr.nome, pr.estoque
-FROM produtos pr
-LEFT JOIN itens_pedido i ON i.produto_id = pr.id
-WHERE i.pedido_id IS NULL;
-
--- ============================================================
--- CONSULTA 8 (subconsulta): pedidos acima do valor médio
--- Uso real: destacar compras de maior valor
--- ============================================================
-SELECT p.id, c.nome, p.total, p.status
-FROM pedidos p
-JOIN clientes c ON c.id = p.cliente_id
-WHERE p.total > (SELECT AVG(total) FROM pedidos WHERE status <> 'cancelado')
-ORDER BY p.total DESC;
-
--- ============================================================
--- CONSULTA 9 (JOIN): últimos contatos recebidos com cliente e produto
--- Uso real: GET /api/contatos (fila de atendimento da equipe)
--- ============================================================
-SELECT ct.id, c.nome, c.email, pr.nome AS produto, ct.assunto, ct.criado_em
-FROM contatos ct
-JOIN clientes c         ON c.id = ct.cliente_id
-LEFT JOIN produtos pr   ON pr.id = ct.produto_id
-ORDER BY ct.criado_em DESC
-LIMIT 10;
+SELECT pr.nome, SUM(i.quantidade) AS unidades
+FROM itens_pedido i
+JOIN produtos pr ON pr.id = i.produto_id
+GROUP BY pr.nome
+ORDER BY unidades DESC;
 
 -- ============================================================
 -- ÍNDICE: idx_pedidos_cliente_data (db/indice.sql)
--- Consulta frequente: pedidos de um cliente, mais recentes primeiro.
+-- Consulta frequente: a consulta 3 (pedidos de um cliente, mais recentes primeiro).
 -- ANTES de criar o índice:
 --   DROP INDEX IF EXISTS idx_pedidos_cliente_data;
 --   EXPLAIN ANALYZE SELECT * FROM pedidos WHERE cliente_id = 1 ORDER BY criado_em DESC;

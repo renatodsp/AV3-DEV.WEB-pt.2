@@ -55,7 +55,7 @@ A **Lia** é a assistente virtual da Alma & Aroma. O arquivo `script.js` envia a
 
 ## 7. Banco de dados
 
-Tabelas: `clientes`, `produtos`, `contatos`, `pedidos`, `itens_pedido` (chaves primárias em todas; chaves estrangeiras: contatos→clientes, contatos→produtos, pedidos→clientes, itens_pedido→pedidos e →produtos; restrições NOT NULL, UNIQUE e CHECK). Diagrama em `db/der.md` (Mermaid) e `db/der.png`. Nove consultas documentadas e roteiro do índice `idx_pedidos_cliente_data` com EXPLAIN antes/depois em `db/consultas.sql`.
+Tabelas: `clientes`, `produtos`, `contatos`, `pedidos`, `itens_pedido` (chaves primárias em todas; chaves estrangeiras: contatos→clientes, contatos→produtos, pedidos→clientes, itens_pedido→pedidos e →produtos; restrições NOT NULL, UNIQUE e CHECK). Diagrama em `db/der.md` (Mermaid) e `db/der.png`. Seis consultas documentadas e roteiro do índice `idx_pedidos_cliente_data` com EXPLAIN antes/depois em `db/consultas.sql`.
 
 ## 8. Estrutura de pastas e arquivos
 
@@ -74,7 +74,7 @@ AV3-Dev.Web/
 │   ├── schema.sql     # Criação das tabelas
 │   ├── indice.sql     # Índice adicional
 │   ├── seed.sql       # Dados de demonstração
-│   ├── consultas.sql  # 9 consultas (JOIN, agregação, filtro, subconsulta) e roteiro do EXPLAIN
+│   ├── consultas.sql  # 6 consultas (filtro, JOIN, agregação) e roteiro do EXPLAIN
 │   ├── der.md / der.svg / der.png  # Diagrama entidade-relacionamento
 │   ├── explain-resultados.md  # Planos antes/depois do índice
 │   └── migrar.js      # Executa os três scripts acima

@@ -78,9 +78,20 @@ barato. Isso é normal.
 
 ### 2.5 Consultas documentadas
 
-O arquivo `db/consultas.sql` tem 9 consultas, cada uma com o uso real no site:
-JOIN em 4 tabelas, agregações com `SUM`/`COUNT`/`GROUP BY`/`HAVING`, filtro com ordenação,
-`LEFT JOIN`, `IS NULL` e subconsulta.
+O arquivo `db/consultas.sql` tem 6 consultas simples, cada uma com um cabeçalho dizendo o que mostra, quem a executa (o site ou você, no SQL Editor do Neon) e como testar:
+
+| # | O que mostra | Tipo | Quem executa |
+|---|---|---|---|
+| 1 | Perfumes disponíveis, do mais barato ao mais caro | Filtro + ordenação | O site (versão parecida) |
+| 2 | Produtos com estoque baixo (`estoque < 10`) | Filtro + ordenação | Você, no Neon |
+| 3 | Pedidos de um cliente, do mais novo ao mais antigo | JOIN | O site (versão parecida); é a que o índice acelera |
+| 4 | Itens de um pedido, com o nome do perfume | JOIN | O site (versão parecida) |
+| 5 | Quantos pedidos há em cada status | Agregação (`COUNT`) | Você, no Neon |
+| 6 | Unidades pedidas de cada perfume | JOIN + agregação (`SUM`) | Você, no Neon |
+
+O site **não** executa as consultas 2, 5 e 6: são relatórios para rodar no SQL Editor do Neon (cole uma por vez e clique em Run).
+As consultas só **leem** o estoque; quem o altera é o site (pedido diminui, cancelamento devolve). Por isso a consulta 2 vem vazia no
+início; para testá-la, rode `UPDATE produtos SET estoque = 5 WHERE nome = 'Bosque Sereno';` e execute a consulta de novo.
 
 ### 2.6 Arquivos da pasta `db/`
 
@@ -90,7 +101,7 @@ JOIN em 4 tabelas, agregações com `SUM`/`COUNT`/`GROUP BY`/`HAVING`, filtro co
 | `indice.sql` | Cria o índice adicional (separado para poder mostrar o "antes") |
 | `seed.sql` | Insere 3 perfumes, 2 clientes, 1 contato e 2 pedidos de demonstração |
 | `migrar.js` | Executa os três arquivos acima, na ordem, usando a `DATABASE_URL` do `.env` |
-| `consultas.sql` | As 9 consultas e o roteiro do EXPLAIN |
+| `consultas.sql` | As 6 consultas e o roteiro do EXPLAIN |
 | `explain-resultados.md` | Planos antes/depois do índice, com interpretação |
 | `der.png` / `der.svg` / `der.md` | Diagrama entidade-relacionamento |
 
